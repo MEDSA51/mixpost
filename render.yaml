@@ -1,7 +1,7 @@
 services:
   # PostgreSQL 資料庫服務
   - name: mixpost-db
-    type: psql
+    type: postgres
     plan: free
     psqlVersion: 14
 
