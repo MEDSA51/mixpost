@@ -1,0 +1,76 @@
+services:
+  # PostgreSQL 資料庫服務
+  - name: mixpost-db
+    type: psql
+    plan: free
+    psqlVersion: 14
+
+  # Redis 快取服務
+  - name: mixpost-redis
+    type: redis
+    plan: free
+
+  # Mixpost 主應用程式服務
+  - name: mixpost-app
+    type: web
+    plan: free
+    runtime: docker
+    healthCheck:
+      path: /
+    envVars:
+      # --- 基本設定 ---
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        fromService:
+          type: web
+          name: mixpost-app
+          property: url
+      - key: APP_KEY # 非常重要！我們先留空，稍後在 Render 儀表板設定
+        generateValue: true # 讓 Render 產生一個隨機值，但我們稍後會用自己的金鑰覆蓋
+
+      # --- 資料庫連線設定 ---
+      - key: DB_CONNECTION
+        value: pgsql
+      - fromService:
+          type: psql
+          name: mixpost-db
+          property: host
+          envVar: DB_HOST
+      - fromService:
+          type: psql
+          name: mixpost-db
+          property: port
+          envVar: DB_PORT
+      - fromService:
+          type: psql
+          name: mixpost-db
+          property: database
+          envVar: DB_DATABASE
+      - fromService:
+          type: psql
+          name: mixpost-db
+          property: user
+          envVar: DB_USERNAME
+      - fromService:
+          type: psql
+          name: mixpost-db
+          property: password
+          envVar: DB_PASSWORD
+
+      # --- Redis 連線設定 ---
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: mixpost-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: mixpost-redis
+          property: port
+
+    # 部署前執行的指令
+    preDeployCommand: "php artisan migrate --force"
